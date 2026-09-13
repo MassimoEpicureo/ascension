@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ascension</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#E7E3DB;
+    --header-bg:#EFECE5;
+    --surface:#FBF9F6;
+    --surface-2:#FFFDFA;
+    --surface-3:#F2EFE9;
+    --line:#D3CCC2;
+    --line-soft:#DCD5CB;
+    --ink:#16191B;
+    --ink-soft:#6F7479;
+    --ink-softer:#4A4F53;
+    --locked:#9C958A;
+    --locked-bar:#D3CCC2;
+    --accent:#2FD07A;
+    --accent-hover:#43E28D;
+    --accent-ink:#0E1A14;
+    --accent-text:#14803F;
+    --accent-tint-bg:#E2F6EA;
+    --accent-tint-border:#BCE6CD;
+    --shadow:0 1px 2px rgba(20,20,15,.05), 0 10px 26px rgba(20,20,15,.06);
+    /* La carte "hero" est volontairement toujours sombre, comme un panneau de nuit en montagne — identique dans les deux thèmes. */
+    --hero-bg:#1D2A31;
+    --hero-ink:#F1EEE8;
+    --hero-ink-soft:#9FB6BF;
+    --hero-body:#C3D2D8;
+    --hero-chip-bg:#16222899;
+    --hero-chip-border:#3B4E56;
+    --hero-ridge-1:#2A3B44;
+    --hero-ridge-2:#33474F;
+  }
+  /* Palette unique et volontairement claire — celle de la maquette d'origine,
+     conservée telle quelle quel que soit le thème du système. */
+
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Archivo', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:var(--ink); }
+  a:hover{ color:var(--accent-text); }
+  button{ font:inherit; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  @keyframes asc-pop{ 0%{transform:scale(.82);opacity:0} 60%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+  @keyframes asc-pulse{ 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(.76)} }
+  @keyframes asc-fall{ 0%{transform:translateY(-10vh) rotate(0deg);opacity:1} 100%{transform:translateY(90vh) rotate(560deg);opacity:0} }
+  @keyframes asc-rise{ 0%{transform:translateY(8px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+  /* ---- header ---- */
+  .topbar{
+    display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between;
+    padding:16px clamp(16px,4vw,44px);
+    border-bottom:1px solid var(--line);
+    background:var(--header-bg);
+    position:sticky; top:0; z-index:5;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-logo{ display:block; width:48px; height:48px; object-fit:contain; flex:none; }
+  .brand-text{ display:flex; flex-direction:column; gap:2px; }
+  .brand-name{ font-weight:800; font-size:18px; letter-spacing:.2em; line-height:1; }
+  .brand-sub{ font-size:10px; letter-spacing:.14em; color:var(--ink-soft); text-transform:uppercase; }
+  .rank-chips{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .rank-label{ font-size:11px; letter-spacing:.08em; color:var(--ink-soft); }
+  .rank-value{ font-weight:700; font-size:14px; }
+  .chip-divider{ width:1px; height:16px; background:var(--line); }
+  .xp-chip{ font-size:13px; font-weight:600; background:var(--ink); color:var(--header-bg); padding:5px 10px; border-radius:4px; }
+  .streak-chip{ font-size:13px; font-weight:600; border:1px solid var(--line); padding:4px 10px; border-radius:4px; }
+
+  .content{ padding:clamp(16px,4vw,44px); display:flex; flex-direction:column; gap:clamp(20px,3vw,30px); max-width:1180px; margin:0 auto; }
+
+  /* ---- hero ---- */
+  .hero{
+    position:relative; overflow:hidden; border-radius:16px;
+    background:var(--hero-bg); color:var(--hero-ink);
+    padding:clamp(20px,4vw,34px);
+    isolation:isolate;
+  }
+  .hero-ridge{ position:absolute; inset:auto 0 0 0; width:100%; height:70%; z-index:-2; opacity:.5; }
+  .hero-watermark{ position:absolute; top:-8%; right:-6%; width:min(280px,42%); height:auto; opacity:.1; z-index:-1; pointer-events:none; }
+  .hero-row{ display:flex; flex-wrap:wrap; gap:24px; align-items:flex-end; justify-content:space-between; }
+  .hero-text{ display:flex; flex-direction:column; gap:10px; min-width:min(100%,300px); }
+  .hero-kicker{ font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--hero-ink-soft); }
+  .hero-title{ margin:0; font-size:clamp(24px,4.2vw,40px); line-height:1.05; font-weight:800; letter-spacing:-.02em; text-wrap:balance; }
+  .hero-sub{ margin:0; font-size:14.5px; color:var(--hero-body); max-width:48ch; text-wrap:pretty; }
+  .hero-action{ display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+  .hero-cta{
+    display:inline-flex; align-items:center; gap:10px; background:var(--accent); color:var(--accent-ink);
+    font-weight:700; font-size:15.5px; padding:14px 22px; border-radius:9px; text-decoration:none; min-height:48px;
+    border:none; cursor:pointer;
+  }
+  .hero-cta:hover{ background:var(--accent-hover); }
+  .countdown{ display:flex; gap:8px; flex-wrap:wrap; }
+  .countdown-unit{ background:var(--hero-chip-bg); border:1px solid var(--hero-chip-border); border-radius:8px; padding:10px 13px; min-width:60px; text-align:center; }
+  .countdown-val{ font-size:clamp(19px,3vw,25px); font-weight:600; line-height:1; }
+  .countdown-lbl{ font-size:9px; letter-spacing:.12em; color:var(--hero-ink-soft); text-transform:uppercase; margin-top:4px; }
+
+  /* ---- buttons (shared) ---- */
+  .btn{ font-family:'Archivo',sans-serif; font-weight:700; font-size:14.5px; border-radius:9px; padding:12px 18px; border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:8px; text-decoration:none; min-height:44px; transition:background .15s ease, transform .12s ease; }
+  .btn:active{ transform:scale(.98); }
+  .btn:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  .btn-dark{ background:var(--ink); color:var(--surface-2); }
+  .btn-dark:hover{ opacity:.9; }
+  .btn-accent{ background:var(--accent); color:var(--accent-ink); }
+  .btn-accent:hover{ background:var(--accent-hover); }
+  .btn-ghost{ background:transparent; border-color:var(--line); color:var(--ink); }
+  .btn-ghost:hover{ background:var(--surface-3); }
+  .btn-sm{ padding:8px 13px; font-size:12.5px; min-height:auto; }
+
+  /* ---- track ---- */
+  .track{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:clamp(16px,3vw,26px); display:flex; flex-direction:column; gap:16px; box-shadow:var(--shadow); }
+  .track-head{ display:flex; flex-wrap:wrap; gap:14px; align-items:baseline; justify-content:space-between; }
+  .track-eyebrow{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 4px; }
+  .track-name{ margin:0; font-size:clamp(19px,2.4vw,25px); font-weight:800; letter-spacing:-.01em; }
+  .track-count{ display:flex; align-items:center; gap:10px; }
+  .track-count-val{ font-size:20px; font-weight:600; }
+  .track-count-lbl{ font-size:10.5px; letter-spacing:.1em; color:var(--ink-soft); text-transform:uppercase; }
+  .track-bar{ height:9px; border-radius:99px; background:var(--bg); overflow:hidden; }
+  .track-bar-fill{ height:100%; background:var(--accent); border-radius:99px; transition:width .5s cubic-bezier(.2,.8,.2,1); }
+  .track-tools{ display:flex; justify-content:flex-end; }
+
+  .chapter-title{ font-size:.66rem; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-soft); margin:0 0 8px; }
+  .levels{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px; }
+  .node{
+    text-align:left; cursor:pointer; background:var(--surface-2); border:1px solid var(--line); border-radius:11px;
+    padding:11px; display:flex; flex-direction:column; gap:7px; min-height:104px; font-family:inherit; color:var(--ink);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .node:hover{ transform:translateY(-2px); }
+  .node:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  .node[data-state="locked"]{ opacity:.62; cursor:default; }
+  .node[data-state="locked"]:hover{ transform:none; }
+  .node.is-selected{ box-shadow:0 0 0 2px var(--ink); }
+  .node-top{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .node-niv{ font-size:11px; font-weight:600; letter-spacing:.07em; color:var(--ink-soft); }
+  .node-title{ font-weight:700; font-size:12.5px; line-height:1.22; text-wrap:pretty; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .node-meta{ margin-top:auto; display:flex; align-items:center; gap:6px; font-size:10px; color:var(--ink-soft); }
+  .node-dot{ width:3px; height:3px; border-radius:99px; background:var(--locked-bar); flex:none; }
+  .node-bar{ height:3px; border-radius:99px; }
+
+  /* ---- detail ---- */
+  .detail{ background:var(--surface-3); border:1px solid var(--line-soft); border-radius:13px; padding:clamp(14px,2.4vw,22px); display:flex; flex-wrap:wrap; gap:22px; justify-content:space-between; animation:asc-rise .3s ease-out; }
+  .detail-main{ display:flex; flex-direction:column; gap:9px; min-width:min(100%,320px); flex:1; }
+  .detail-eyebrow{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+  .detail-title{ margin:0; font-size:clamp(17px,2.2vw,22px); font-weight:800; letter-spacing:-.01em; text-wrap:pretty; }
+  .detail-tags{ display:flex; flex-wrap:wrap; gap:7px; }
+  .detail-tag{ font-size:11.5px; background:var(--surface-2); border:1px solid var(--line-soft); border-radius:5px; padding:5px 9px; }
+  .detail-blurb{ margin:0; font-size:14px; line-height:1.5; color:var(--ink-softer); max-width:54ch; }
+  .detail-actions{ display:flex; flex-direction:column; gap:9px; align-items:stretch; min-width:min(100%,240px); }
+  .detail-actions .btn{ justify-content:space-between; }
+  .done-chip{ font-size:11.5px; color:var(--accent-text); background:var(--accent-tint-bg); border:1px solid var(--accent-tint-border); border-radius:6px; padding:9px 11px; text-align:center; }
+  .undo-btn{ cursor:pointer; background:transparent; color:var(--ink-soft); border:1px solid var(--line-soft); font-size:12px; padding:9px; border-radius:6px; }
+  .undo-btn:hover{ color:var(--ink); }
+  .locked-note{ font-size:12.5px; color:var(--ink-soft); line-height:1.45; }
+
+  /* ---- organize panel ---- */
+  .organize-panel{ border:1px dashed var(--line); border-radius:13px; padding:4px 16px; display:flex; flex-direction:column; max-height:420px; overflow-y:auto; }
+  .organize-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 0; border-bottom:1px solid var(--line); }
+  .organize-row:last-child{ border-bottom:none; }
+  .organize-row.is-done{ opacity:.5; }
+  .organize-pos{ font-weight:700; font-size:.8rem; width:26px; flex:none; color:var(--ink-soft); }
+  .organize-info{ flex:1; min-width:140px; }
+  .organize-info .t{ font-size:.8rem; font-weight:500; }
+  .organize-info .m{ font-size:.68rem; color:var(--ink-soft); }
+  .organize-select{ font-size:.74rem; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); flex:1; min-width:150px; }
+  .organize-arrows{ display:flex; gap:4px; flex:none; }
+  .icon-btn{ width:26px; height:26px; border-radius:8px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+  .icon-btn:hover{ background:var(--surface-3); }
+  .icon-btn[disabled]{ opacity:.3; cursor:not-allowed; }
+  .organize-badge{ font-size:.66rem; color:var(--ink-soft); white-space:nowrap; }
+  .organize-hint{ font-size:.76rem; color:var(--ink-soft); margin:10px 0 4px; }
+
+  /* ---- badges ---- */
+  .badges-section{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:clamp(16px,3vw,26px); display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow); }
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .section-head h2{ margin:0; font-size:clamp(17px,2.2vw,21px); font-weight:800; }
+  .badges-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:9px; }
+  .badge{ border:1px solid var(--line-soft); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:5px; background:var(--surface-2); }
+  .badge-top{ display:flex; align-items:center; gap:8px; }
+  .badge-dot{ width:11px; height:11px; border-radius:99px; flex:none; }
+  .badge-name{ font-weight:700; font-size:13px; }
+  .badge-req{ font-size:10.5px; color:var(--ink-soft); line-height:1.35; }
+
+  /* ---- footer ---- */
+  .stats-footer{ display:flex; flex-wrap:wrap; gap:18px; align-items:center; justify-content:space-between; border-top:1px solid var(--line); padding-top:20px; }
+  .total-block{ display:flex; align-items:baseline; gap:12px; }
+  .total-value{ font-size:clamp(26px,4.6vw,38px); font-weight:600; line-height:1; }
+  .total-label{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); }
+  .footer-stats{ display:flex; flex-wrap:wrap; gap:22px; }
+  .fs-item{ display:flex; flex-direction:column; gap:3px; }
+  .fs-label{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); }
+  .fs-value{ font-weight:600; font-size:14.5px; }
+  .reset-link{ background:none; border:none; font-size:.74rem; color:var(--ink-soft); text-decoration:underline; text-underline-offset:2px; cursor:pointer; padding:0; }
+  .reset-link:hover{ color:var(--ink); }
+  .footer-resets{ display:flex; gap:16px; flex-wrap:wrap; }
+
+  .confetti-layer{ position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden; }
+  .confetti-piece{ position:absolute; top:0; width:8px; height:13px; border-radius:2px; animation:asc-fall 1.4s ease-in forwards; }
+
+  @media (max-width:480px){
+    .track-head{ align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="logo.png" alt="Ascension" width="48" height="48">
+      <div class="brand-text">
+        <span class="brand-name mono">ASCENSION</span>
+        <span class="brand-sub">Poids du corps · 104 séances</span>
+      </div>
+    </div>
+    <div class="rank-chips">
+      <span class="rank-label mono">RANG</span>
+      <span class="rank-value" id="rankValue">Randonneur</span>
+      <span class="chip-divider"></span>
+      <span class="xp-chip mono" id="xpChip">0 XP</span>
+      <span class="streak-chip mono" id="streakChip">0 semaine</span>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="hero" id="hero">
+      <svg class="hero-ridge" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true">
+        <polygon points="0,160 150,42 300,160" fill="var(--hero-ridge-1)"></polygon>
+        <polygon points="200,160 380,20 560,160" fill="var(--hero-ridge-2)"></polygon>
+        <polygon points="380,20 420,64 340,64" fill="var(--accent)" opacity=".55"></polygon>
+      </svg>
+      <img class="hero-watermark" src="logo.png" alt="" aria-hidden="true">
+      <div class="hero-row">
+        <div class="hero-text">
+          <span class="hero-kicker mono" id="heroKicker"></span>
+          <h1 class="hero-title" id="heroTitle"></h1>
+          <p class="hero-sub" id="heroSub"></p>
+        </div>
+        <div class="hero-action" id="heroAction"></div>
+      </div>
+    </section>
+
+    <section class="track" data-track="haut" id="track-haut">
+      <div class="track-head">
+        <div>
+          <p class="track-eyebrow mono">Mercredi · parcours 01</p>
+          <h2 class="track-name">Haut du corps</h2>
+        </div>
+        <div class="track-count">
+          <span class="track-count-val mono" id="hautCountVal">00 / 52</span>
+        </div>
+      </div>
+      <div class="track-bar"><div class="track-bar-fill" id="hautFill" style="width:0%"></div></div>
+      <div class="track-tools"><button class="btn btn-ghost btn-sm" type="button" id="organizeToggleHaut">Organiser le programme</button></div>
+      <div id="hautLevels"></div>
+      <div class="organize-panel" id="hautOrganize" hidden></div>
+      <div class="detail" id="hautDetail"></div>
+    </section>
+
+    <section class="track" data-track="bas" id="track-bas">
+      <div class="track-head">
+        <div>
+          <p class="track-eyebrow mono">Dimanche · parcours 02</p>
+          <h2 class="track-name">Bas du corps + Core</h2>
+        </div>
+        <div class="track-count">
+          <span class="track-count-val mono" id="basCountVal">00 / 52</span>
+        </div>
+      </div>
+      <div class="track-bar"><div class="track-bar-fill" id="basFill" style="width:0%"></div></div>
+      <div class="track-tools"><button class="btn btn-ghost btn-sm" type="button" id="organizeToggleBas">Organiser le programme</button></div>
+      <div id="basLevels"></div>
+      <div class="organize-panel" id="basOrganize" hidden></div>
+      <div class="detail" id="basDetail"></div>
+    </section>
+
+    <section class="badges-section">
+      <div class="section-head">
+        <h2>Badges</h2>
+        <span class="mono" id="badgeLabel" style="font-size:12px;color:var(--ink-soft)"></span>
+      </div>
+      <div class="badges-grid" id="badgesGrid"></div>
+    </section>
+
+    <footer class="stats-footer">
+      <div class="total-block">
+        <span class="total-value mono" id="totalValue">00 / 104</span>
+        <span class="total-label">séances gravies</span>
+      </div>
+      <div class="footer-stats">
+        <div class="fs-item"><span class="fs-label mono">Dernière séance</span><span class="fs-value" id="lastSession">—</span></div>
+        <div class="fs-item"><span class="fs-label mono">Temps cumulé</span><span class="fs-value" id="totalMinutes">0 min</span></div>
+      </div>
+      <div class="footer-resets">
+        <button class="reset-link" id="resetHaut" data-track="haut">Réinitialiser le parcours Haut du corps</button>
+        <button class="reset-link" id="resetBas" data-track="bas">Réinitialiser le parcours Bas du corps</button>
+      </div>
+    </footer>
+    <p class="mono" id="syncNote" style="font-size:.76rem;color:var(--ink-soft);margin:-8px 0 0;">Chargement de ta progression…</p>
+  </main>
+</div>
+<div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= CATALOGUE (identique à la version précédente) ================= */
+  var CATALOG = {
+    haut: [
+      { id:"h1", title:"7Min Effective Home Chest Workout (No Equipment)", url:"https://www.youtube.com/watch?v=sSIccj82Dyg", channel:"THENX / Chris Heria", duration:"7 min", focus:"pectoraux", tier:2 },
+      { id:"h2", title:"5min Home CHEST Workout ANYONE Can Do!", url:"https://www.youtube.com/watch?v=hsRWz7HMxWM", channel:"THENX / Chris Heria", duration:"5 min", focus:"pectoraux", tier:1 },
+      { id:"h3", title:"No Gym? DO THIS Chest Workout From Home", url:"https://www.youtube.com/watch?v=ILIe_KJ_bKk", channel:"THENX / Chris Heria", duration:null, focus:"pectoraux", tier:2 },
+      { id:"h4", title:"At Home Back Workout — No Equipment Needed!", url:"https://www.youtube.com/watch?v=GZNxI-U1NbM", channel:"THENX / Chris Heria", duration:null, focus:"dos", tier:2 },
+      { id:"h5", title:"At Home Back Workout - No Equipment Required", url:"https://www.youtube.com/watch?v=nfsQW1uGoBg", channel:"THENX / Chris Heria", duration:null, focus:"dos", tier:2 },
+      { id:"h6", title:"5 MIN Home Back Workout // No Equipment", url:"https://www.youtube.com/watch?v=Z1_9LcBHWt4", channel:"THENX / Chris Heria", duration:"5 min", focus:"dos", tier:1 },
+      { id:"h7", title:"More Than Just A Back Workout", url:"https://www.youtube.com/watch?v=hXZ36ru17fc", channel:"THENX / Chris Heria", duration:null, focus:"dos", tier:3 },
+      { id:"h8", title:"DO THIS For A BIGGER BACK | Minimum Equipment Needed", url:"https://www.youtube.com/watch?v=hsCILrG2Op4", channel:"THENX / Chris Heria", duration:null, focus:"dos", tier:3 },
+      { id:"h9", title:"Complete 10 Min Shoulder Workout | No Equipment", url:"https://www.youtube.com/watch?v=jBPdbt0Fxb4", channel:"THENX / Chris Heria", duration:"10 min", focus:"épaules", tier:2 },
+      { id:"h10", title:"15 MIN UPPER BODY WORKOUT - No Equipment (Back, Arms, Chest, Shoulders)", url:"https://www.youtube.com/watch?v=ESkI_WR1qqc", channel:"MadFit", duration:"15 min", focus:"haut du corps complet", tier:2 },
+      { id:"h11", title:"INTENSE AT HOME UPPER BODY WORKOUT (No Equipment)", url:"https://www.youtube.com/watch?v=70CPGAn9STk", channel:"MadFit", duration:null, focus:"haut du corps complet", tier:3 },
+      { id:"h12", title:"15 min BODYWEIGHT Upper Body Workout AT HOME (No Equipment)", url:"https://www.youtube.com/watch?v=s5lVj49v-B4", channel:"MadFit", duration:"15 min", focus:"haut du corps complet", tier:2 },
+      { id:"h13", title:"15 MIN TONED UPPER BODY WORKOUT (No Equipment At Home)", url:"https://www.youtube.com/watch?v=P1XhPLUPV-0", channel:"MadFit", duration:"15 min", focus:"haut du corps complet", tier:2 },
+      { id:"h14", title:"15 min ARMS AND ABS WORKOUT | No Equipment | Toned Upper Body and Core", url:"https://www.youtube.com/watch?v=rJQ0OyOIodc", channel:"MadFit", duration:"15 min", focus:"bras", tier:2 },
+      { id:"h15", title:"Upper Body Workout", url:"https://www.youtube.com/watch?v=YXIQbzkseeQ", channel:"MadFit", duration:null, focus:"haut du corps complet", tier:2 },
+      { id:"h16", title:"15 MIN UPPER BODY WORKOUT (BACK, ARMS, CHEST & ABS / NO EQUIPMENT)", url:"https://www.youtube.com/watch?v=pD4UHOvhNe8", channel:"Fraser Wilson", duration:"15 min", focus:"haut du corps complet", tier:2 },
+      { id:"h17", title:"15 MIN UPPER BODY WORKOUT (CHEST, BACK, ABS, ARMS & SHOULDERS / NO EQUIPMENT)", url:"https://www.youtube.com/watch?v=UtB4kX2wSNw", channel:"Fraser Wilson", duration:"15 min", focus:"haut du corps complet", tier:2 },
+      { id:"h18", title:"10 MIN UPPER BODY WORKOUT (CHEST, BACK, ABS, ARMS & SHOULDERS / NO EQUIPMENT)", url:"https://www.youtube.com/watch?v=wRDMFP3ihkE", channel:"Fraser Wilson", duration:"10 min", focus:"haut du corps complet", tier:1 },
+      { id:"h19", title:"10 MIN INTENSE CHEST WORKOUT (NO EQUIPMENT BODYWEIGHT WORKOUT!)", url:"https://www.youtube.com/watch?v=5rNJMENn2m0", channel:"Fraser Wilson", duration:"10 min", focus:"pectoraux", tier:3 },
+      { id:"h20", title:"10 MIN HOME CHEST WORKOUT (NO EQUIPMENT BODYWEIGHT WORKOUT!)", url:"https://www.youtube.com/watch?v=WsFMkXBJEvU", channel:"Fraser Wilson", duration:"10 min", focus:"pectoraux", tier:2 },
+      { id:"h21", title:"10 MIN HOME CHEST & SHOULDERS WORKOUT (NO EQUIPMENT BODYWEIGHT WORKOUT!)", url:"https://www.youtube.com/watch?v=tznOr5ILEQs", channel:"Fraser Wilson", duration:"10 min", focus:"pectoraux", tier:2 },
+      { id:"h22", title:"10 MIN HOME CHEST & ABS WORKOUT (NO EQUIPMENT!)", url:"https://www.youtube.com/watch?v=k4iWWwWYut8", channel:"Fraser Wilson", duration:"10 min", focus:"pectoraux", tier:2 },
+      { id:"h23", title:"10 MIN UPPER BODY WORKOUT (CHEST, ABS, ARMS & SHOULDERS / NO EQUIPMENT)", url:"https://www.youtube.com/watch?v=7s4d7PBQCow", channel:"Fraser Wilson", duration:"10 min", focus:"haut du corps complet", tier:2 },
+      { id:"h24", title:"Chest Workout - Level 1", url:"https://www.youtube.com/watch?v=nV80y796Gwk", channel:"Passion4Profession", duration:null, focus:"pectoraux", tier:1 },
+      { id:"h25", title:"Chest Workout - Level 3", url:"https://www.youtube.com/watch?v=C4139dLyqDQ", channel:"Passion4Profession", duration:null, focus:"pectoraux", tier:3 },
+      { id:"h26", title:"Chest Workout - Level 2 - No Music", url:"https://www.youtube.com/watch?v=u4ZZNdud1mg", channel:"Passion4Profession", duration:null, focus:"pectoraux", tier:2 },
+      { id:"h27", title:"Chest Workout - Level 1 - No Music", url:"https://www.youtube.com/watch?v=F_mJA99KnIo", channel:"Passion4Profession", duration:null, focus:"pectoraux", tier:1 },
+      { id:"h28", title:"40 MINUTE UPPER BODY WORKOUT - Arms, Shoulders, Chest, Back | Complex Series - Day 2", url:"https://www.youtube.com/watch?v=-2DkbkIyq5c", channel:"Passion4Profession", duration:"40 min", focus:"haut du corps complet", tier:4 },
+      { id:"h29", title:"5min pectoraux à la maison sans matériel ! (intense)", url:"https://www.youtube.com/watch?v=EAzT-DJxZC0", channel:"Tibo InShape", duration:"5 min", focus:"pectoraux", tier:2 },
+      { id:"h30", title:"PECTORAUX XXL ENTRAINEMENT 8MIN SANS MATÉRIEL !!", url:"https://www.youtube.com/watch?v=79T9769v2NY", channel:"Tibo InShape", duration:"8 min", focus:"pectoraux", tier:2 },
+      { id:"h31", title:"PECTORAUX ENORME ENTRAINEMENT (5min sans matériel)", url:"https://www.youtube.com/watch?v=6RPHspLzUew", channel:"Tibo InShape", duration:"5 min", focus:"pectoraux", tier:2 },
+      { id:"h32", title:"MON ENTRAINEMENT DOS !", url:"https://www.youtube.com/watch?v=JXa57EdSztE", channel:"Tibo InShape", duration:null, focus:"dos", tier:2 },
+      { id:"h33", title:"Dos entrainement intense 5 minutes sans matériel", url:"https://www.youtube.com/watch?v=ol_10ow2zZI", channel:"Tibo InShape", duration:"5 min", focus:"dos", tier:2 },
+      { id:"h34", title:"DOUBLER SES ÉPAULES - ENTRAÎNEMENT À LA MAISON SANS MATÉRIEL", url:"https://www.youtube.com/watch?v=PvtERCGqVIw", channel:"Tibo InShape", duration:null, focus:"épaules", tier:3 },
+      { id:"h35", title:"Épaule entrainement intense en 5min (maison sans matériel)", url:"https://www.youtube.com/watch?v=1noV0QbxgIU", channel:"Tibo InShape", duration:"5 min", focus:"épaules", tier:2 },
+      { id:"h36", title:"L'entraînement d'épaule parfait (sans matériel)", url:"https://www.youtube.com/watch?v=7kGAnP-qxTI", channel:"Tibo InShape", duration:null, focus:"épaules", tier:2 },
+      { id:"h37", title:"5min Entrainement Epaules Sans Materiel", url:"https://www.youtube.com/watch?v=FE1IcKFCLtM", channel:"Tibo InShape", duration:"5 min", focus:"épaules", tier:1 },
+      { id:"h38", title:"ÉPAULE MUSCLÉE EN 5 MINUTES ! (à la maison sans matériel)", url:"https://www.youtube.com/watch?v=UQTC7YiNXlQ", channel:"Tibo InShape", duration:"5 min", focus:"épaules", tier:1 },
+      { id:"h39", title:"ÉPAULES & DOS EN V EN 30 JOURS (11min Sans Matériel)", url:"https://www.youtube.com/watch?v=n4fsXXfU5jY", channel:"Tibo InShape", duration:"11 min", focus:"épaules", tier:3 },
+      { id:"h40", title:"PECS ÉPAULES BRAS SANS MATERIEL : ENTRAINEMENT DE 40 MIN", url:"https://www.youtube.com/watch?v=_K-I-Fnf_cA", channel:"Tibo InShape", duration:"40 min", focus:"haut du corps complet", tier:4 },
+      { id:"h41", title:"Épaules SANS matériel : 4 exercices Méchants !", url:"https://www.youtube.com/watch?v=XJIwMtZkqQY", channel:"Tibo InShape", duration:null, focus:"épaules", tier:2 },
+      { id:"h42", title:"Gros bras exercice maison en 5min! (biceps triceps)", url:"https://www.youtube.com/watch?v=PHTe-6kQAW0", channel:"Tibo InShape", duration:"5 min", focus:"bras", tier:2 },
+      { id:"h43", title:"MUSCLER SES BRAS SANS MATÉRIEL - BICEPS ET TRICEPS AU POIDS DE CORPS", url:"https://www.youtube.com/watch?v=fyVNPC18ZNE", channel:"Tibo InShape", duration:null, focus:"bras", tier:2 },
+      { id:"h44", title:"Des bras plus gros en 30jours ! (6 exercices sans matériel)", url:"https://www.youtube.com/watch?v=C4OqsTDMx-Q", channel:"Tibo InShape", duration:null, focus:"bras", tier:3 },
+      { id:"h45", title:"LE MEILLEUR ENTRAINEMENT TRICEPS ! (à la maison sans matériel)", url:"https://www.youtube.com/watch?v=VDkwvj2_VIg", channel:"Tibo InShape", duration:null, focus:"bras", tier:2 },
+      { id:"h46", title:"5 exercices pour de gros triceps ! (entrainement maison sans matériel)", url:"https://www.youtube.com/watch?v=Su-AFZ4pCs0", channel:"Tibo InShape", duration:null, focus:"bras", tier:2 },
+      { id:"h47", title:"10min Exercices Renforcement Bras Sans Matériel", url:"https://www.youtube.com/watch?v=Qj-D_GbSOGw", channel:"Tibo InShape", duration:"10 min", focus:"bras", tier:2 },
+      { id:"h48", title:"ENTRAÎNEMENT BRAS SANS MATERIEL !", url:"https://www.youtube.com/watch?v=h-2cLqDebW4", channel:"Tibo InShape", duration:null, focus:"bras", tier:2 },
+      { id:"h49", title:"BICEPS : 4 exercices ultimes sans matériel !", url:"https://www.youtube.com/watch?v=CCX4P6TTWos", channel:"Tibo InShape", duration:null, focus:"bras", tier:2 },
+      { id:"h50", title:"EXPLOSER SON TOUR DE BRAS SANS SALLE ! (à la Maison, Sans Matériel)", url:"https://www.youtube.com/watch?v=qqFa5JqPaUg", channel:"Tibo InShape", duration:null, focus:"bras", tier:3 },
+      { id:"h51", title:"10-Minute, No-Equipment Arm Workout With Rachel McClusky", url:"https://www.youtube.com/watch?v=c1A_OTc6GoQ", channel:"POPSUGAR Fitness", duration:"10 min", focus:"bras", tier:1 },
+      { id:"h52", title:"4-Minute No-Weight, Arm Toning Workout", url:"https://www.youtube.com/watch?v=PJO1hQSMPT4", channel:"Class FitSugar (POPSUGAR)", duration:"4 min", focus:"bras", tier:1 },
+      { id:"h53", title:"30-Minute No-Equipment Arms and Abs Workout", url:"https://www.youtube.com/watch?v=g1E2Tasqog4", channel:"POPSUGAR Fitness", duration:"30 min", focus:"bras", tier:3 },
+      { id:"h54", title:"The PERFECT Shoulder Workout (NO WEIGHTS)", url:"https://www.youtube.com/watch?v=5yLcLmhhjDw", channel:"Fitness FAQs", duration:null, focus:"épaules", tier:2 },
+      { id:"h55", title:"5 min SHOULDER WORKOUT CHALLENGE | No Equipment", url:"https://www.youtube.com/watch?v=mwTKZ9VX6-8", channel:"Fitness FAQs", duration:"5 min", focus:"épaules", tier:1 },
+      { id:"h56", title:"No Equipment Shoulder Warm Up", url:"https://www.youtube.com/watch?v=uW69bWxRxuQ", channel:"Fitness FAQs", duration:null, focus:"épaules", tier:1 },
+      { id:"h57", title:"Intense 10 Minute At Home Shoulder Workout Bodyweight Finisher", url:"https://www.youtube.com/watch?v=Z68by50la9Q", channel:"Fitness FAQs", duration:"10 min", focus:"épaules", tier:3 },
+      { id:"h58", title:"10 MINUTE KILLER SHOULDER WORKOUT (ROUTINE) *NO EQUIPMENT NEEDED*", url:"https://www.youtube.com/watch?v=jogkD5FMTZk", channel:"Fitness FAQs", duration:"10 min", focus:"épaules", tier:3 },
+      { id:"h59", title:"10 MINUTE CHEST & SHOULDER WORKOUT (BODYWEIGHT ONLY)", url:"https://www.youtube.com/watch?v=M7nPj3t9sfY", channel:"Fitness FAQs", duration:"10 min", focus:"pectoraux", tier:2 },
+      { id:"h60", title:"10 MIN SHOULDER WORKOUT || Get Sexy Shoulders & Smaller Waist", url:"https://www.youtube.com/watch?v=dVaJR4D8nm4", channel:"Fitness FAQs", duration:"10 min", focus:"épaules", tier:2 },
+      { id:"h61", title:"Arm, Shoulder, & Back Workout | HOME WORKOUT, No Equipment", url:"https://www.youtube.com/watch?v=PWGjHoFO7oE", channel:"Fitness FAQs", duration:null, focus:"haut du corps complet", tier:2 },
+      { id:"h62", title:"No Equipment Upper Body Workout for Great Arms, Shoulders and Upper Back", url:"https://www.youtube.com/watch?v=CRGrcSDhynQ", channel:"Fitness Blender", duration:null, focus:"haut du corps complet", tier:2 },
+      { id:"h63", title:"Lean Arm Workout Challenge — Lose Arm Fat (No Equipment)", url:"https://www.youtube.com/watch?v=Y8aZduGcgRE", channel:"Chloe Ting", duration:null, focus:"bras", tier:2 },
+      { id:"h64", title:"10 Min Upper Body & Arms Workout | Beginner Friendly No Equipment", url:"https://www.youtube.com/watch?v=7L-Td_p0bXE", channel:"Chloe Ting", duration:"10 min", focus:"haut du corps complet", tier:1 },
+      { id:"h65", title:"10 min Toned Arms & Upper Body Workout | No Equipment", url:"https://www.youtube.com/watch?v=iN-AEOs9rzc", channel:"Chloe Ting", duration:"10 min", focus:"bras", tier:1 },
+      { id:"h66", title:"Back Workout At Home | No Equipment", url:"https://www.youtube.com/watch?v=rLOaX9pp7xM", channel:"Rowan Row", duration:null, focus:"dos", tier:2 }
+    ],
+    bas: [
+      { id:"b1", title:"Le meilleur entrainement Jambes (sans matériel en 5minutes !)", url:"https://www.youtube.com/watch?v=IcszGajGs0E", channel:"Tibo InShape", duration:"5 min", focus:"jambes", tier:2 },
+      { id:"b2", title:"Abdos visible et ventre plat en 10min ! (sans matériel)", url:"https://www.youtube.com/watch?v=dMfdRb7FoDk", channel:"Tibo InShape", duration:"10 min", focus:"abdos", tier:2 },
+      { id:"b3", title:"Abdos visible et ventre plat en 8min ! (sans matériel)", url:"https://www.youtube.com/watch?v=c3dwKf5dY3U", channel:"Tibo InShape", duration:"8 min", focus:"abdos", tier:2 },
+      { id:"b4", title:"3min d'abdos pour un ventre plat ! (exercice sans matériel)", url:"https://www.youtube.com/watch?v=-ZSBjg4Vr20", channel:"Tibo InShape", duration:"3 min", focus:"abdos", tier:1 },
+      { id:"b5", title:"Comment avoir des abdos — entraînement 6 min (sans matériel)", url:"https://www.youtube.com/watch?v=QY8BBCTeRkM", channel:"Tibo InShape", duration:"6 min", focus:"abdos", tier:1 },
+      { id:"b6", title:"10min pour perdre du ventre et avoir des Abdos dessinés", url:"https://www.youtube.com/watch?v=4o7sr6x_dEg", channel:"Tibo InShape", duration:"10 min", focus:"abdos", tier:2 },
+      { id:"b7", title:"Circuit 8 minutes abdos intense sans matériel ! (ventre plat)", url:"https://www.youtube.com/watch?v=5DOT1R8zEFE", channel:"Tibo InShape", duration:"8 min", focus:"abdos", tier:3 },
+      { id:"b8", title:"DÉTRUISEZ VOS ABDOS EN 10 MINUTES !", url:"https://www.youtube.com/watch?v=bNgGFc-edJY", channel:"Tibo InShape", duration:"10 min", focus:"abdos", tier:3 },
+      { id:"b9", title:"VENTRE PLAT ET ABDOS EN 8MIN (sans équipement)", url:"https://www.youtube.com/watch?v=lCH_jvwFxdc", channel:"Tibo InShape", duration:"8 min", focus:"abdos", tier:2 },
+      { id:"b10", title:"Ventre Plat et Dessiné — Challenge Abdos 7min Sans Matériel", url:"https://www.youtube.com/watch?v=INZ0ZaYnGRg", channel:"Tibo InShape", duration:"7 min", focus:"abdos", tier:2 },
+      { id:"b11", title:"10min Fessiers Debout Sans Matériel", url:"https://www.youtube.com/watch?v=ZbnIbCzXP-c", channel:"Tibo InShape", duration:"10 min", focus:"fessiers", tier:2 },
+      { id:"b12", title:"Fessier intensif programme maison 5minutes !", url:"https://www.youtube.com/watch?v=xr5DXMjAGQo", channel:"Tibo InShape", duration:"5 min", focus:"fessiers", tier:2 },
+      { id:"b13", title:"5 exercices mollets sans matériel (à la maison)", url:"https://www.youtube.com/watch?v=9HiznamXjs4", channel:"Tibo InShape", duration:"5 min", focus:"mollets", tier:1 },
+      { id:"b14", title:"25 MIN Cuisses Abdos Fessiers — séance complète sans impact", url:"https://www.youtube.com/watch?v=9HvssuXyLdw", channel:"FlashFitHome", duration:"25 min", focus:"bas du corps complet", tier:3 },
+      { id:"b15", title:"20MIN Abdos-Fessiers intensif, express et sans saut", url:"https://www.youtube.com/watch?v=OI4WnShZSUo", channel:"Sissy Mua", duration:"20 min", focus:"abdos/fessiers", tier:3 },
+      { id:"b16", title:"15min Fessiers Express - sans matériel & sans sauts", url:"https://www.youtube.com/watch?v=xVK4IkpCUjI", channel:"Sissy Mua", duration:"15 min", focus:"fessiers", tier:2 },
+      { id:"b17", title:"20MIN Fessiers & Jambes ! Sans matériel, toniques & bombés", url:"https://www.youtube.com/watch?v=ODQFLb9h4-w", channel:"Sissy Mua", duration:"20 min", focus:"jambes/fessiers", tier:3 },
+      { id:"b18", title:"Brûle-graisses + Fessiers express — perte de gras, tonification", url:"https://www.youtube.com/watch?v=6qbZEcNtuKA", channel:"Sissy Mua", duration:null, focus:"fessiers", tier:3 },
+      { id:"b19", title:"30MIN Fit Pilates — corps tonique, ventre plat & fessiers", url:"https://www.youtube.com/watch?v=Zk40LMSqNaQ", channel:"Sissy Mua", duration:"30 min", focus:"abdos/fessiers", tier:3 },
+      { id:"b20", title:"20MIN Fessiers Bombés Intensif — 100% booty", url:"https://www.youtube.com/watch?v=luIaJegMIW0", channel:"Sissy Mua", duration:"20 min", focus:"fessiers", tier:3 },
+      { id:"b21", title:"15 minutes pour sculpter ses fessiers sans matériel", url:"https://www.youtube.com/watch?v=GtKGSeUVSL8", channel:"ELLE Fitness", duration:"15 min", focus:"fessiers", tier:2 },
+      { id:"b22", title:"Doubler ses mollets — séance complète et efficace, sans matériel", url:"https://www.youtube.com/watch?v=JWHGxTqNVf0", channel:"Alex Levand", duration:null, focus:"mollets", tier:3 },
+      { id:"b23", title:"10 MIN Leg/Booty/Thigh Workout (No Equipment Killer Legs)", url:"https://www.youtube.com/watch?v=FJA3R7n_594", channel:"MadFit", duration:"10 min", focus:"jambes/fessiers", tier:2 },
+      { id:"b24", title:"10 min Leg/Butt/Thigh (Killer No Equipment Workout)", url:"https://www.youtube.com/watch?v=QA-PDrlWPNw", channel:"MadFit", duration:"10 min", focus:"jambes/fessiers", tier:2 },
+      { id:"b25", title:"15 MIN Leg/Booty/Thigh Workout (No Equipment Killer Legs)", url:"https://www.youtube.com/watch?v=Cq8xjqDLPKg", channel:"MadFit", duration:"15 min", focus:"jambes/fessiers", tier:3 },
+      { id:"b26", title:"5 MIN Lean Legs Workout (Intense & No Equipment)", url:"https://www.youtube.com/watch?v=tw2g3hf5TOU", channel:"MadFit", duration:"5 min", focus:"jambes", tier:1 },
+      { id:"b27", title:"15 MIN Leg Workout - Thighs, Booty, Calves (No Equipment)", url:"https://www.youtube.com/watch?v=HVyt7ywsOQ8", channel:"MadFit", duration:"15 min", focus:"jambes/mollets", tier:3 },
+      { id:"b28", title:"6 MIN Flat Abs Workout (At Home No Equipment)", url:"https://www.youtube.com/watch?v=n0gpwgEgCBk", channel:"MadFit", duration:"6 min", focus:"abdos", tier:1 },
+      { id:"b29", title:"15 MIN Total Core/Ab Workout (At Home No Equipment)", url:"https://www.youtube.com/watch?v=2mkwIgukTuY", channel:"MadFit", duration:"15 min", focus:"core", tier:3 },
+      { id:"b30", title:"4-Week No-Equipment Plan, Weeks 2 & 4: 28-Minute Leg Workout", url:"https://www.youtube.com/watch?v=SSCDL5SR75Y", channel:"POPSUGAR Fitness", duration:"28 min", focus:"jambes", tier:3 },
+      { id:"b31", title:"15-Minute Tight and Toned Strong-Legs Workout", url:"https://www.youtube.com/watch?v=UyZENofWX3U", channel:"POPSUGAR Fitness", duration:"15 min", focus:"jambes", tier:2 },
+      { id:"b32", title:"Calisthenics Leg Workout (No Equipment)", url:"https://www.youtube.com/watch?v=0z5hJYXAQp4", channel:"THENX / Chris Heria", duration:null, focus:"jambes", tier:3 },
+      { id:"b33", title:"8 Min Home Leg Workout | No Jumping", url:"https://www.youtube.com/watch?v=G5nxGTFBauM", channel:"THENX / Chris Heria", duration:"8 min", focus:"jambes", tier:1 },
+      { id:"b34", title:"20 Min Complete Home Leg Workout | Follow Along", url:"https://www.youtube.com/watch?v=q7rCeOa_m58", channel:"THENX / Chris Heria", duration:"20 min", focus:"jambes", tier:3 },
+      { id:"b35", title:"Complete Leg Workout (No Equipment)", url:"https://www.youtube.com/watch?v=l2W_R__fQaw", channel:"Fitness FAQs", duration:null, focus:"jambes", tier:2 },
+      { id:"b36", title:"20 Minute Killer Leg Workout - Advanced, No Equipment", url:"https://www.youtube.com/watch?v=ApiYWyoUhP8", channel:"Fitness FAQs", duration:"20 min", focus:"jambes", tier:4 },
+      { id:"b37", title:"10 Minute Leg Workout No Equipment!", url:"https://www.youtube.com/watch?v=VId2Jz7ZswE", channel:"Do This Not That", duration:"10 min", focus:"jambes", tier:2 },
+      { id:"b38", title:"Effective Leg Workout From Home (No Equipment)", url:"https://www.youtube.com/watch?v=_ru8ljeRCSM", channel:"Do This Not That", duration:null, focus:"jambes", tier:2 },
+      { id:"b39", title:"Intense 10 Min Leg Workout (At Home No Equipment)", url:"https://www.youtube.com/watch?v=EsxpZcApZDs", channel:"Do This Not That", duration:"10 min", focus:"jambes", tier:3 },
+      { id:"b40", title:"12 MIN Leg Workout - Butt, Thighs & Calves (No Equipment)", url:"https://www.youtube.com/watch?v=Fu_oExrPX68", channel:"Pamela Reif", duration:"12 min", focus:"jambes/mollets", tier:2 },
+      { id:"b41", title:"10 MIN Booty Workout - Medium Intensity (No Equipment)", url:"https://www.youtube.com/watch?v=5-tH4gdpKiU", channel:"Pamela Reif", duration:"10 min", focus:"fessiers", tier:2 },
+      { id:"b42", title:"10 MIN Beginner Leg Workout, with breaks (No Equipment)", url:"https://www.youtube.com/watch?v=nG69wuXHwxg", channel:"Pamela Reif", duration:"10 min", focus:"jambes", tier:1 },
+      { id:"b43", title:"15 MIN Booty Workout, Low Impact - knee friendly (No Equipment)", url:"https://www.youtube.com/watch?v=p-uUnrCdhR8", channel:"Pamela Reif", duration:"15 min", focus:"fessiers", tier:1 },
+      { id:"b44", title:"30 MIN Beginner Legs + Booty (No Equipment)", url:"https://www.youtube.com/watch?v=htL4XYk20Mc", channel:"Pamela Reif", duration:"30 min", focus:"jambes/fessiers", tier:2 },
+      { id:"b45", title:"20 MIN Legs + Booty (No Equipment)", url:"https://www.youtube.com/watch?v=iCG4zlvuUok", channel:"Pamela Reif", duration:"20 min", focus:"jambes/fessiers", tier:3 },
+      { id:"b46", title:"20 MIN Booty Workout (No Equipment)", url:"https://www.youtube.com/watch?v=HeolReSa5ic", channel:"Pamela Reif", duration:"20 min", focus:"fessiers", tier:3 },
+      { id:"b47", title:"Leg Workout on Music (No Equipment)", url:"https://www.youtube.com/watch?v=Ldeq9CPsPSo", channel:"Pamela Reif", duration:null, focus:"jambes", tier:2 },
+      { id:"b48", title:"10 MIN Legs + Fat Burn - tone thighs, booty & burn calories", url:"https://www.youtube.com/watch?v=R1EKAgFRe2E", channel:"Pamela Reif", duration:"10 min", focus:"jambes", tier:2 },
+      { id:"b49", title:"15 Min Lean & Toned Legs Workout - Get Toned Challenge", url:"https://www.youtube.com/watch?v=vL9KBe6hmr8", channel:"Chloe Ting", duration:"15 min", focus:"jambes", tier:2 },
+      { id:"b50", title:"Get Abs in 2 Weeks | Abs Workout Challenge", url:"https://www.youtube.com/watch?v=2pLT-olgUJs", channel:"Chloe Ting", duration:null, focus:"abdos", tier:3 },
+      { id:"b51", title:"Abs in 2 Weeks | Abs Workout Challenge 2020", url:"https://www.youtube.com/watch?v=h8ctkfSx6R0", channel:"Chloe Ting", duration:null, focus:"abdos", tier:3 },
+      { id:"b52", title:"Legs + Butt Burner!! (No Equipment)", url:"https://www.youtube.com/watch?v=1t_Y8g4YMBo", channel:"Heather Robertson", duration:null, focus:"jambes/fessiers", tier:3 },
+      { id:"b53", title:"Get Lean Legs in Less Than 10 Minutes", url:"https://www.youtube.com/watch?v=ZgVxTSDK1pY", channel:"Heather Robertson", duration:"10 min", focus:"jambes", tier:1 },
+      { id:"b54", title:"Legs & Booty Workout (No Equipment)", url:"https://www.youtube.com/watch?v=TeN-TATnwyI", channel:"Heather Robertson", duration:null, focus:"jambes/fessiers", tier:2 },
+      { id:"b55", title:"Home Workout Challenge — Leg Workout (No Equipment)", url:"https://www.youtube.com/watch?v=7WQRjMjCkvI", channel:"Heather Robertson", duration:null, focus:"jambes", tier:2 },
+      { id:"b56", title:"Brutal Booty + Leg Slimming Workout (No Equipment + No Repeats)", url:"https://www.youtube.com/watch?v=pcJsP4gogsI", channel:"Heather Robertson", duration:null, focus:"jambes/fessiers", tier:3 },
+      { id:"b57", title:"30 Minute Leg Burnout Workout — Burn 300 Calories", url:"https://www.youtube.com/watch?v=b3BqPm1BXtU", channel:"Sydney Cummings", duration:"30 min", focus:"jambes", tier:3 },
+      { id:"b58", title:"30 Minute Strong Legs Workout — Burn 360 Calories", url:"https://www.youtube.com/watch?v=HhM8LVmsFYI", channel:"Sydney Cummings", duration:"30 min", focus:"jambes", tier:3 },
+      { id:"b59", title:"30 Minute Leg Workout — Burn 360 Calories", url:"https://www.youtube.com/watch?v=clpnwnPKNqQ", channel:"Sydney Cummings", duration:"30 min", focus:"jambes", tier:3 },
+      { id:"b60", title:"40 Minute Lean Legs Workout — Burn 480 Calories", url:"https://www.youtube.com/watch?v=hPQQvvYdd6E", channel:"Sydney Cummings", duration:"40 min", focus:"jambes", tier:4 },
+      { id:"b61", title:"30 Minute Lean Legs Workout — Burn 370 Calories", url:"https://www.youtube.com/watch?v=PaJnpbNoeus", channel:"Sydney Cummings", duration:"30 min", focus:"jambes", tier:3 },
+      { id:"b62", title:"30 MIN Legs + Booty Burn — No Equipment, No Talking", url:"https://www.youtube.com/watch?v=_ld5pEGIP6A", channel:"growingannanas", duration:"30 min", focus:"jambes/fessiers", tier:3 },
+      { id:"b63", title:"30 MIN Lower Body HIIT — Tone & Grow Legs & Glutes", url:"https://www.youtube.com/watch?v=ky4aq1YS85E", channel:"growingannanas", duration:"30 min", focus:"bas du corps complet", tier:4 },
+      { id:"b64", title:"20 MIN Leg Workout - No Equipment", url:"https://www.youtube.com/watch?v=YKppwC-MHQQ", channel:"growingannanas", duration:"20 min", focus:"jambes", tier:3 },
+      { id:"b65", title:"30 MIN Leg Workout - No Equipment, No Repeat", url:"https://www.youtube.com/watch?v=FiZI7HOpK9A", channel:"growingannanas", duration:"30 min", focus:"jambes", tier:4 },
+      { id:"b66", title:"25 MIN Legs & Glutes Workout — Beginner Friendly", url:"https://www.youtube.com/watch?v=ViY2LPDbU5A", channel:"growingannanas", duration:"25 min", focus:"jambes/fessiers", tier:2 },
+      { id:"b67", title:"10 Min Pilates Ab Workout — no equipment", url:"https://www.youtube.com/watch?v=0K7NNWMhO1Q", channel:"Blogilates", duration:"10 min", focus:"abdos", tier:1 }
+    ]
+  };;
+
+  var TOTAL_PER_TRACK = 52;
+  var ALT_MAX = { haut:4808, bas:1910 }; /* clin d'oeil : altitude du Mont Blanc / du Mont Ventoux, purement décoratif */
+  var SESSIONS = [
+    { track:"haut", dow:3, hour:19, label:"Mercredi", name:"Haut du corps" },
+    { track:"bas", dow:0, hour:10, label:"Dimanche", name:"Bas du corps + Core" }
+  ];
+  var TRACK_LABEL = { haut:"Haut du corps", bas:"Bas du corps + Core" };
+  var TRACK_DAY = { haut:"Mercredi", bas:"Dimanche" };
+
+  var SHORT_TAG = {
+    "pectoraux":"Pectoraux", "dos":"Dos", "épaules":"Épaules", "bras":"Bras", "haut du corps complet":"Haut du corps complet",
+    "jambes":"Jambes", "abdos":"Abdos", "fessiers":"Fessiers", "mollets":"Mollets",
+    "jambes/fessiers":"Jambes & fessiers", "abdos/fessiers":"Abdos & fessiers", "jambes/mollets":"Jambes & mollets",
+    "core":"Core", "bas du corps complet":"Bas du corps complet"
+  };
+  function shortTag(focus){ return SHORT_TAG[focus] || focus; }
+
+  var TIER_BLURB = {
+    1:"Une séance courte, parfaite pour poser les bases.",
+    2:"Un format solide pour continuer à progresser.",
+    3:"La cadence monte : séance plus longue et plus exigeante.",
+    4:"Le morceau de résistance du cycle — prévois de l'eau."
+  };
+  function levelBlurb(v){ return "Focus " + v.focus + ", par " + v.channel + ". " + (TIER_BLURB[v.tier] || ""); }
+
+  function parseMinutes(duration){
+    if (!duration) return 10;
+    var m = /(\d+)/.exec(duration);
+    return m ? parseInt(m[1], 10) : 10;
+  }
+
+  function catalogById(trackKey, id){
+    var list = CATALOG[trackKey];
+    for (var i = 0; i < list.length; i++){ if (list[i].id === id) return list[i]; }
+    return null;
+  }
+
+  function buildDefaultOrder(trackKey, count){
+    var list = CATALOG[trackKey].slice();
+    var groups = {};
+    var order = [];
+    list.forEach(function(v){ (groups[v.focus] = groups[v.focus] || []).push(v); });
+    var focusKeys = Object.keys(groups);
+    focusKeys.forEach(function(f){ groups[f].sort(function(a,b){ return a.tier - b.tier; }); });
+    var idx = 0;
+    while (order.length < count){
+      var addedAny = false;
+      for (var i = 0; i < focusKeys.length; i++){
+        var g = groups[focusKeys[i]];
+        if (g[idx]){ order.push(g[idx].id); addedAny = true; if (order.length >= count) break; }
+      }
+      if (!addedAny) break;
+      idx++;
+    }
+    return order;
+  }
+
+  function defaultState(){
+    return {
+      haut:{ unlocked:1, completed:{}, order:buildDefaultOrder("haut", TOTAL_PER_TRACK) },
+      bas:{ unlocked:1, completed:{}, order:buildDefaultOrder("bas", TOTAL_PER_TRACK) }
+    };
+  }
+
+  function isValidOrder(trackKey, order){
+    if (!Array.isArray(order) || order.length !== TOTAL_PER_TRACK) return false;
+    var seen = {};
+    for (var i = 0; i < order.length; i++){
+      var id = order[i];
+      if (seen[id]) return false;
+      seen[id] = true;
+      if (!catalogById(trackKey, id)) return false;
+    }
+    return true;
+  }
+
+  function mergeState(raw){
+    var d = defaultState();
+    if (!raw || typeof raw !== "object") return d;
+    ["haut","bas"].forEach(function(k){
+      if (raw[k] && typeof raw[k] === "object"){
+        if (typeof raw[k].unlocked === "number") d[k].unlocked = raw[k].unlocked;
+        if (raw[k].completed && typeof raw[k].completed === "object") d[k].completed = raw[k].completed;
+        if (isValidOrder(k, raw[k].order)) d[k].order = raw[k].order;
+      }
+    });
+    return d;
+  }
+
+  var state = defaultState();
+  var ui = { selected:{ haut:null, bas:null }, resetArmed:{ haut:false, bas:false }, organizeOpen:{ haut:false, bas:false } };
+  var db = null;
+  var syncStatus = "loading";
+
+  try {
+    var raw = localStorage.getItem("ascension-progress-v3");
+    if (raw) state = mergeState(JSON.parse(raw));
+  } catch(e){}
+
+  function levelState(trackKey, pos){
+    var t = state[trackKey];
+    if (t.completed[pos]) return "completed";
+    if (pos === t.unlocked) return "current";
+    if (pos < t.unlocked) return "completed";
+    return "locked";
+  }
+  function videoAt(trackKey, pos){ return catalogById(trackKey, state[trackKey].order[pos - 1]); }
+  function altFor(trackKey, pos){ return Math.round((pos / TOTAL_PER_TRACK) * ALT_MAX[trackKey]) + " m"; }
+
+  function formatDate(iso){
+    try{ return new Date(iso).toLocaleDateString("fr-FR", { day:"2-digit", month:"long" }); }
+    catch(e){ return "—"; }
+  }
+  function pad2(n){ return String(n).padStart(2, "0"); }
+
+  function saveState(){
+    try{ localStorage.setItem("ascension-progress-v3", JSON.stringify(state)); }catch(e){}
+    if (db){ db.doc("progress/state").set(state).catch(function(){}); }
+    render();
+  }
+
+  function spawnConfetti(){
+    var layer = document.getElementById("confettiLayer");
+    var colors = ["#2FD07A", "#1D2A31", "#86A9C4", "#F1EEE8"];
+    for (var i = 0; i < 22; i++){
+      var el = document.createElement("span");
+      el.className = "confetti-piece";
+      el.style.left = Math.round(Math.random() * 96) + "%";
+      el.style.background = colors[i % colors.length];
+      el.style.animationDelay = (Math.random() * 0.4).toFixed(2) + "s";
+      layer.appendChild(el);
+      (function(node){ setTimeout(function(){ node.remove(); }, 2000); })(el);
+    }
+  }
+
+  function markComplete(trackKey, pos){
+    var t = state[trackKey];
+    if (pos !== t.unlocked) return;
+    t.completed[pos] = new Date().toISOString();
+    t.unlocked = Math.min(pos + 1, TOTAL_PER_TRACK + 1);
+    ui.selected[trackKey] = Math.min(pos + 1, TOTAL_PER_TRACK);
+    saveState();
+    spawnConfetti();
+  }
+
+  function undoComplete(trackKey, pos){
+    var t = state[trackKey];
+    if (pos !== t.unlocked - 1) return; /* on ne peut annuler que la dernière validation */
+    delete t.completed[pos];
+    t.unlocked = pos;
+    ui.selected[trackKey] = pos;
+    saveState();
+  }
+
+  function resetTrack(trackKey){
+    state[trackKey] = { unlocked:1, completed:{}, order:buildDefaultOrder(trackKey, TOTAL_PER_TRACK) };
+    ui.selected[trackKey] = null;
+    saveState();
+  }
+
+  function swapPositions(trackKey, posA, posB){
+    var order = state[trackKey].order;
+    var tmp = order[posA - 1]; order[posA - 1] = order[posB - 1]; order[posB - 1] = tmp;
+    saveState();
+  }
+  function setVideoAtPosition(trackKey, pos, newId){
+    var order = state[trackKey].order;
+    if (order.indexOf(newId) !== -1) return;
+    order[pos - 1] = newId;
+    saveState();
+  }
+
+  var lockIcon = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" fill="var(--locked)"></rect><rect x="9.5" y="5" width="5" height="7" rx="2.5" fill="none" stroke="var(--locked)" stroke-width="2.4"></rect></svg>';
+  var currentIcon = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="var(--ink)" stroke-width="2"></circle><circle cx="12" cy="12" r="4" fill="var(--ink)" style="animation:asc-pulse 1.8s ease-in-out infinite;transform-origin:12px 12px"></circle></svg>';
+  var doneIcon = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="animation:asc-pop .35s ease-out both"><circle cx="12" cy="12" r="10" fill="var(--accent)"></circle><polyline points="7,12.5 10.6,16 17,8.8" fill="none" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linecap="square"></polyline></svg>';
+  var playIcon = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>';
+  var upIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg>';
+  var downIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>';
+
+  function renderLevels(trackKey){
+    var t = state[trackKey];
+    var host = document.getElementById(trackKey + "Levels");
+    var selected = ui.selected[trackKey] !== null ? ui.selected[trackKey] : Math.min(t.unlocked, TOTAL_PER_TRACK);
+    var VISIBLE_COUNT = 5;
+    var half = Math.floor(VISIBLE_COUNT / 2);
+    var start = Math.max(1, Math.min(selected, TOTAL_PER_TRACK) - half);
+    var end = Math.min(TOTAL_PER_TRACK, start + VISIBLE_COUNT - 1);
+    start = Math.max(1, end - VISIBLE_COUNT + 1);
+    var html = '<p class="chapter-title">Semaines ' + start + '–' + end + ' <span class="mono" style="text-transform:none;letter-spacing:0;color:var(--ink-soft)">· sur ' + TOTAL_PER_TRACK + ' au total, voir "Organiser le programme"</span></p><div class="levels">';
+    for (var pos = start; pos <= end; pos++){
+      var v = videoAt(trackKey, pos);
+      var st = levelState(trackKey, pos);
+      var icon = st === "locked" ? lockIcon : (st === "completed" ? doneIcon : currentIcon);
+      var barColor = st === "completed" ? "var(--accent)" : st === "current" ? "var(--ink)" : "var(--locked-bar)";
+      var selCls = (pos === selected) ? " is-selected" : "";
+      html += '<button class="node' + selCls + '" type="button" data-level="' + pos + '" data-state="' + st + '" aria-label="Semaine ' + pos + " — " + v.focus + '">' +
+        '<div class="node-top"><span class="node-niv mono">NIV ' + pad2(pos) + '</span>' + icon + '</div>' +
+        '<span class="node-title">' + shortTag(v.focus) + '</span>' +
+        '<span class="node-meta mono">' + (v.duration || "libre") + '<span class="node-dot"></span>' + (st === "completed" ? "Terminé" : st === "current" ? "En cours" : "Verrouillé") + '</span>' +
+        '<span class="node-bar" style="background:' + barColor + '"></span>' +
+      '</button>';
+    }
+    html += '</div>';
+    host.innerHTML = html;
+    Array.prototype.forEach.call(host.querySelectorAll(".node"), function(btn){
+      btn.addEventListener("click", function(){
+        ui.selected[trackKey] = parseInt(btn.getAttribute("data-level"), 10);
+        render();
+      });
+    });
+  }
+
+  function renderDetail(trackKey){
+    var t = state[trackKey];
+    var selected = ui.selected[trackKey] !== null ? ui.selected[trackKey] : Math.min(t.unlocked, TOTAL_PER_TRACK);
+    var v = videoAt(trackKey, selected);
+    var st = levelState(trackKey, selected);
+    var canUndo = st === "completed" && selected === t.unlocked - 1;
+    var actionsHtml = '<a class="btn btn-dark" href="' + v.url + '" target="_blank" rel="noopener">Regarder la séance ' + playIcon + '</a>';
+    if (st === "current"){
+      actionsHtml += '<button class="btn btn-accent" type="button" data-action="complete" data-track="' + trackKey + '" data-level="' + selected + '">Marquer comme terminée</button>';
+    } else if (st === "completed"){
+      actionsHtml += '<span class="done-chip">Terminée le ' + formatDate(t.completed[selected]) + '</span>';
+      if (canUndo){
+        actionsHtml += '<button class="undo-btn" type="button" data-action="undo" data-track="' + trackKey + '" data-level="' + selected + '">Annuler la validation</button>';
+      }
+    } else {
+      actionsHtml += '<span class="locked-note">Termine la semaine ' + (selected - 1) + ' pour débloquer celle-ci.</span>';
+    }
+    document.getElementById(trackKey + "Detail").innerHTML =
+      '<div class="detail-main">' +
+        '<span class="detail-eyebrow mono">Niveau ' + pad2(selected) + ' · ' + (st === "completed" ? "Terminé" : st === "current" ? "En cours" : "Verrouillé") + '</span>' +
+        '<h3 class="detail-title">' + v.focus + '</h3>' +
+        '<div class="detail-tags mono">' +
+          '<span class="detail-tag">' + (v.duration || "durée libre") + '</span>' +
+          '<span class="detail-tag">' + v.channel + '</span>' +
+          '<span class="detail-tag">alt. ' + altFor(trackKey, selected) + '</span>' +
+        '</div>' +
+        '<p class="detail-blurb">' + levelBlurb(v) + '</p>' +
+      '</div>' +
+      '<div class="detail-actions">' + actionsHtml + '</div>';
+    var completeBtn = document.querySelector('[data-action="complete"][data-track="' + trackKey + '"]');
+    if (completeBtn) completeBtn.addEventListener("click", function(){ markComplete(trackKey, parseInt(this.getAttribute("data-level"), 10)); });
+    var undoBtn = document.querySelector('[data-action="undo"][data-track="' + trackKey + '"]');
+    if (undoBtn) undoBtn.addEventListener("click", function(){ undoComplete(trackKey, parseInt(this.getAttribute("data-level"), 10)); });
+  }
+
+  function renderOrganize(trackKey){
+    var panel = document.getElementById(trackKey + "Organize");
+    var toggleBtn = document.getElementById("organizeToggle" + (trackKey === "haut" ? "Haut" : "Bas"));
+    var open = ui.organizeOpen[trackKey];
+    panel.hidden = !open;
+    toggleBtn.textContent = open ? "Fermer l'organisation" : "Organiser le programme";
+    if (!open) return;
+
+    var t = state[trackKey];
+    var usedIds = t.order;
+    var html = '<p class="organize-hint">Les semaines déjà complétées sont figées. À partir de la semaine en cours, réordonne ou change librement la vidéo de chaque semaine.</p>';
+    for (var pos = 1; pos <= TOTAL_PER_TRACK; pos++){
+      var v = videoAt(trackKey, pos);
+      var done = pos < t.unlocked;
+      html += '<div class="organize-row' + (done ? " is-done" : "") + '">' +
+        '<span class="organize-pos mono">' + pos + '</span>' +
+        '<div class="organize-info"><div class="t">' + v.title + '</div><div class="m">' + v.focus + " · " + (v.duration || "durée libre") + " · " + v.channel + '</div></div>';
+      if (done){
+        html += '<span class="organize-badge mono">Complétée le ' + formatDate(t.completed[pos]) + '</span>';
+      } else {
+        html += '<select class="organize-select" data-pos="' + pos + '" data-track="' + trackKey + '">';
+        CATALOG[trackKey].forEach(function(cv){
+          if (usedIds.indexOf(cv.id) !== -1 && cv.id !== v.id) return;
+          var sel = cv.id === v.id ? " selected" : "";
+          html += '<option value="' + cv.id + '"' + sel + '>' + cv.focus + " — " + cv.title.slice(0, 44) + (cv.title.length > 44 ? "…" : "") + '</option>';
+        });
+        html += '</select>';
+        var canUp = pos > t.unlocked, canDown = pos < TOTAL_PER_TRACK;
+        html += '<div class="organize-arrows">' +
+          '<button class="icon-btn" type="button" data-up="' + pos + '" data-track="' + trackKey + '"' + (canUp ? "" : " disabled") + ' aria-label="Monter">' + upIcon + '</button>' +
+          '<button class="icon-btn" type="button" data-down="' + pos + '" data-track="' + trackKey + '"' + (canDown ? "" : " disabled") + ' aria-label="Descendre">' + downIcon + '</button>' +
+        '</div>';
+      }
+      html += '</div>';
+    }
+    panel.innerHTML = html;
+    Array.prototype.forEach.call(panel.querySelectorAll(".organize-select"), function(sel){
+      sel.addEventListener("change", function(){ setVideoAtPosition(this.getAttribute("data-track"), parseInt(this.getAttribute("data-pos"), 10), this.value); });
+    });
+    Array.prototype.forEach.call(panel.querySelectorAll("[data-up]"), function(btn){
+      btn.addEventListener("click", function(){ var p = parseInt(this.getAttribute("data-up"), 10); swapPositions(this.getAttribute("data-track"), p, p - 1); });
+    });
+    Array.prototype.forEach.call(panel.querySelectorAll("[data-down]"), function(btn){
+      btn.addEventListener("click", function(){ var p = parseInt(this.getAttribute("data-down"), 10); swapPositions(this.getAttribute("data-track"), p, p + 1); });
+    });
+  }
+
+  function renderTrack(trackKey){
+    var t = state[trackKey];
+    var completedCount = Object.keys(t.completed).length;
+    document.getElementById(trackKey + "CountVal").textContent = pad2(completedCount) + " / " + TOTAL_PER_TRACK;
+    document.getElementById(trackKey + "Fill").style.width = Math.round((completedCount / TOTAL_PER_TRACK) * 100) + "%";
+    renderLevels(trackKey);
+    renderOrganize(trackKey);
+    renderDetail(trackKey);
+  }
+
+  /* ================= hero / rang / xp / streak / badges ================= */
+  function weekKey(d){
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+    var y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return t.getUTCFullYear() * 100 + Math.ceil(((t - y0) / 86400000 + 1) / 7);
+  }
+
+  function computeGlobals(){
+    var hautDone = Object.keys(state.haut.completed).length;
+    var basDone = Object.keys(state.bas.completed).length;
+    var total = hautDone + basDone;
+    var minutes = 0;
+    ["haut","bas"].forEach(function(tk){
+      Object.keys(state[tk].completed).forEach(function(pos){ minutes += parseMinutes(videoAt(tk, parseInt(pos,10)).duration); });
+    });
+    var allDates = Object.keys(state.haut.completed).map(function(k){ return state.haut.completed[k]; })
+      .concat(Object.keys(state.bas.completed).map(function(k){ return state.bas.completed[k]; }));
+    var weeks = allDates.map(function(iso){ return weekKey(new Date(iso)); });
+    var uniq = Array.from(new Set(weeks)).sort(function(a,b){ return b - a; });
+    var streak = 0;
+    if (uniq.length){
+      var cur = weekKey(new Date());
+      if (uniq[0] === cur || uniq[0] === cur - 1){
+        streak = 1;
+        for (var i = 1; i < uniq.length; i++){ if (uniq[i-1] - uniq[i] === 1) streak++; else break; }
+      }
+    }
+    var ranks = [[0,"Randonneur"],[8,"Grimpeur"],[20,"Alpiniste"],[40,"Alpiniste confirmé"],[65,"Ascensionniste"],[90,"Guide de haute montagne"],[104,"Sommet"]];
+    var rank = ranks.filter(function(r){ return total >= r[0]; }).pop()[1];
+    return { hautDone:hautDone, basDone:basDone, total:total, minutes:minutes, streak:streak, rank:rank, lastIso: allDates.sort().slice(-1)[0] || null };
+  }
+
+  function renderTopbar(g){
+    document.getElementById("rankValue").textContent = g.rank;
+    document.getElementById("xpChip").textContent = (g.minutes * 10) + " XP";
+    document.getElementById("streakChip").textContent = g.streak + (g.streak > 1 ? " semaines" : " semaine");
+  }
+
+  function nextSessionInfo(now){
+    var todaySession = SESSIONS.find(function(s){ return s.dow === now.getDay(); });
+    var best = Infinity, next = null;
+    SESSIONS.forEach(function(s){
+      for (var k = 0; k < 8; k++){
+        var c = new Date(now);
+        c.setDate(now.getDate() + k);
+        c.setHours(s.hour, 0, 0, 0);
+        var diff = c.getTime() - now.getTime();
+        if (diff > 0 && diff < best){ best = diff; next = s; }
+      }
+    });
+    return { todaySession:todaySession, next:next, diffMs:best };
+  }
+
+  function currentLevelInfo(trackKey){
+    var t = state[trackKey];
+    var pos = Math.min(t.unlocked, TOTAL_PER_TRACK);
+    var v = videoAt(trackKey, pos);
+    return { pos:pos, v:v, isFull: t.unlocked > TOTAL_PER_TRACK };
+  }
+
+  function renderHero(){
+    var now = new Date();
+    var info = nextSessionInfo(now);
+    var el = document.getElementById("hero");
+    var actionEl = document.getElementById("heroAction");
+
+    if (info.todaySession){
+      var tk = info.todaySession.track;
+      var lv = currentLevelInfo(tk);
+      document.getElementById("heroKicker").textContent = "Séance du jour · " + info.todaySession.label;
+      document.getElementById("heroTitle").textContent = lv.isFull ? "Parcours " + TRACK_LABEL[tk] + " terminé !" : "Semaine " + pad2(lv.pos) + " — " + lv.v.focus;
+      document.getElementById("heroSub").textContent = lv.isFull
+        ? "Tu as gravi les " + TOTAL_PER_TRACK + " semaines de ce parcours. Reviens dimanche prochain ou explore l'autre parcours."
+        : "Niveau " + pad2(lv.pos) + " du parcours " + TRACK_LABEL[tk] + " · " + (lv.v.duration || "durée libre") + " · " + lv.v.channel;
+      actionEl.innerHTML = '<button class="hero-cta" type="button" id="heroCta">Aller à la séance du jour <span class="mono">→</span></button>';
+      var btn = document.getElementById("heroCta");
+      btn.addEventListener("click", function(){
+        ui.selected[tk] = lv.pos;
+        render();
+        document.getElementById("track-" + tk).scrollIntoView({ behavior:"smooth", block:"start" });
+      });
+    } else {
+      var tk2 = info.next.track;
+      var lv2 = currentLevelInfo(tk2);
+      document.getElementById("heroKicker").textContent = "Prochaine séance · " + info.next.label;
+      document.getElementById("heroTitle").textContent = TRACK_LABEL[tk2];
+      document.getElementById("heroSub").textContent = lv2.isFull
+        ? "Repos aujourd'hui. Ce parcours est déjà gravi en entier — beau travail."
+        : "Repos aujourd'hui. Prochain rendez-vous : semaine " + pad2(lv2.pos) + ", " + lv2.v.focus + " (" + (lv2.v.duration || "durée libre") + ").";
+      actionEl.innerHTML =
+        '<div class="countdown" id="countdown">' +
+          '<div class="countdown-unit"><div class="countdown-val mono" data-u="d">00</div><div class="countdown-lbl">jours</div></div>' +
+          '<div class="countdown-unit"><div class="countdown-val mono" data-u="h">00</div><div class="countdown-lbl">heures</div></div>' +
+          '<div class="countdown-unit"><div class="countdown-val mono" data-u="m">00</div><div class="countdown-lbl">min</div></div>' +
+          '<div class="countdown-unit"><div class="countdown-val mono" data-u="s">00</div><div class="countdown-lbl">sec</div></div>' +
+        '</div>';
+    }
+    tickCountdown();
+  }
+
+  function tickCountdown(){
+    var box = document.getElementById("countdown");
+    if (!box) return;
+    var info = nextSessionInfo(new Date());
+    if (info.todaySession) return;
+    var secs = Math.max(0, Math.floor(info.diffMs / 1000));
+    var d = Math.floor(secs / 86400), h = Math.floor((secs % 86400) / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+    var map = { d:d, h:h, m:m, s:s };
+    Array.prototype.forEach.call(box.querySelectorAll("[data-u]"), function(el){
+      el.textContent = pad2(map[el.getAttribute("data-u")]);
+    });
+  }
+
+  function renderBadges(g){
+    var defs = [
+      { name:"Premier pas", req:"1 séance terminée", ok:g.total >= 1 },
+      { name:"Quart de parcours", req:"26 séances terminées", ok:g.total >= 26 },
+      { name:"Mi-parcours", req:"52 séances terminées", ok:g.total >= 52 },
+      { name:"Trois quarts", req:"78 séances terminées", ok:g.total >= 78 },
+      { name:"Buste d'acier", req:"parcours Haut du corps complet", ok:g.hautDone >= TOTAL_PER_TRACK },
+      { name:"Appuis solides", req:"parcours Bas du corps complet", ok:g.basDone >= TOTAL_PER_TRACK },
+      { name:"Régulier", req:"4 semaines d'affilée", ok:g.streak >= 4 },
+      { name:"Sommet", req:"les 104 séances", ok:g.total >= TOTAL_PER_TRACK * 2 }
+    ];
+    document.getElementById("badgeLabel").textContent = defs.filter(function(b){ return b.ok; }).length + " / " + defs.length + " obtenus";
+    document.getElementById("badgesGrid").innerHTML = defs.map(function(b){
+      return '<div class="badge" style="opacity:' + (b.ok ? 1 : .55) + '">' +
+        '<div class="badge-top"><span class="badge-dot" style="background:' + (b.ok ? "var(--accent)" : "var(--line-soft)") + '"></span><span class="badge-name">' + b.name + '</span></div>' +
+        '<span class="badge-req">' + b.req + '</span>' +
+      '</div>';
+    }).join("");
+  }
+
+  function renderFooter(g){
+    document.getElementById("totalValue").textContent = pad2(g.total) + " / " + (TOTAL_PER_TRACK * 2);
+    document.getElementById("lastSession").textContent = g.lastIso ? formatDate(g.lastIso) : "aucune pour l'instant";
+    document.getElementById("totalMinutes").textContent = g.minutes + " min";
+
+    var note = document.getElementById("syncNote");
+    if (syncStatus === "synced") note.textContent = "Progression et programme personnalisé synchronisés automatiquement entre tous tes appareils (PC, Android...).";
+    else if (syncStatus === "local") note.textContent = "Progression sauvegardée sur ce navigateur uniquement — la synchronisation entre appareils n'est pas disponible ici.";
+    else if (syncStatus === "error") note.textContent = "Synchronisation momentanément indisponible — ta progression reste sauvegardée sur cet appareil.";
+    else note.textContent = "Chargement de ta progression…";
+  }
+
+  function render(){
+    var g = computeGlobals();
+    renderTopbar(g);
+    renderHero();
+    renderTrack("haut");
+    renderTrack("bas");
+    renderBadges(g);
+    renderFooter(g);
+  }
+
+  function wireReset(trackKey, btnId){
+    var btn = document.getElementById(btnId);
+    btn.addEventListener("click", function(){
+      if (!ui.resetArmed[trackKey]){
+        ui.resetArmed[trackKey] = true;
+        btn.textContent = "Sûr ? Cliquer à nouveau pour confirmer";
+        setTimeout(function(){ ui.resetArmed[trackKey] = false; btn.textContent = "Réinitialiser le parcours " + (trackKey === "haut" ? "Haut du corps" : "Bas du corps"); }, 3000);
+      } else {
+        ui.resetArmed[trackKey] = false;
+        btn.textContent = "Réinitialiser le parcours " + (trackKey === "haut" ? "Haut du corps" : "Bas du corps");
+        resetTrack(trackKey);
+      }
+    });
+  }
+  wireReset("haut", "resetHaut");
+  wireReset("bas", "resetBas");
+
+  document.getElementById("organizeToggleHaut").addEventListener("click", function(){ ui.organizeOpen.haut = !ui.organizeOpen.haut; render(); });
+  document.getElementById("organizeToggleBas").addEventListener("click", function(){ ui.organizeOpen.bas = !ui.organizeOpen.bas; render(); });
+
+  render();
+  setInterval(tickCountdown, 1000);
+
+  (function initDb(){
+    if (typeof window.claude === "undefined" || !window.claude || typeof window.claude.use !== "function"){
+      syncStatus = "local"; renderFooter(computeGlobals()); return;
+    }
+    window.claude.use("db").then(function(cap){
+      if (!cap){ syncStatus = "local"; renderFooter(computeGlobals()); return; }
+      db = cap;
+      db.doc("progress/state").onSnapshot(function(snap){
+        if (snap.exists){ state = mergeState(snap.data()); }
+        else { db.doc("progress/state").set(state).catch(function(){}); }
+        syncStatus = "synced";
+        render();
+      }, function(){ syncStatus = "error"; renderFooter(computeGlobals()); });
+    }).catch(function(){ syncStatus = "local"; renderFooter(computeGlobals()); });
+  })();
+})();
+</script>
+</body>
+</html>
